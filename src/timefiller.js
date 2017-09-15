@@ -147,7 +147,7 @@ class TimeFiller {
       if (issues.length) {
         let sampleTickets = '';
         issues.forEach((i) => {
-          sampleTickets += i.key + '\n';
+          sampleTickets += `${i.key}: "${i.fields.summary}"` + '\n';
         });
         let question = 'Type the ticket name to assign hours'
         if (sampleTickets) {

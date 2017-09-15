@@ -66,7 +66,7 @@ class JiraFacade {
     const options = {
       startAt: 0,
       maxResults: 1000,
-      fields: ['worklog', 'worklogs', 'status'],
+      fields: ['worklog', 'worklogs', 'status', 'summary'],
     };
     return this._exhaustIssues(query, options);
   }

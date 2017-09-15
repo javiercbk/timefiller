@@ -1,0 +1,14 @@
+// A launch configuration that launches the extension inside a new window
+{
+    "version": "0.1.0",
+    "configurations": [
+        {
+            "name": "Run script",
+            "type": "node",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "program": "${workspaceRoot}/index.js"
+        }
+    ]
+}

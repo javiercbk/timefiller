@@ -1,0 +1,9 @@
+tell application "Terminal"
+	activate
+	tell application "Finder"
+		set visible of process "Terminal" to true
+	end tell
+	set currentTab to do script ("cd /path-to/timefiller-script")
+	delay 1
+	do script ("node index.js") in currentTab
+end tell
