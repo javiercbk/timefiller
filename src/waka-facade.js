@@ -2,6 +2,8 @@ const Promise = require('bluebird');
 const Waka = require('wakatime');
 const moment = require('moment');
 
+const timeUtils = require('./time-utils');
+
 class WakaFacade {
   constructor(configuration) {
     this.wi = new Waka(configuration.waka.apiKey);
@@ -28,20 +30,8 @@ class WakaFacade {
   }
 
   lastLaboralDayWorkSeconds(allProjects = []) {
-    const now = moment();
-    const today = now.day()
-    let minusDays;
-    switch(today) {
-      case 0:
-        // sunday, getting work from friday.
-        minusDays = -2;
-      case 1:
-        // monday, getting work from friday.
-        minusDays = -3;
-      default:
-        minusDays = -1;
-    }
-    return this.dayWorkSeconds(moment().add(minusDays, 'day'), allProjects);
+    const date = timeUtils.lastWorkDay();
+    return this.dayWorkSeconds(date, allProjects);
   }
 
   yesterdayWorkSeconds(allProjects = []) {

@@ -3,6 +3,7 @@ const path = require('path');
 const moment = require('moment');
 
 const TimeFiller = require('./timefiller');
+const timeUtils = require('./time-utils');
 
 const executeClient = function (dirname) {
   const ConfigParser = require('./config-parser');
@@ -37,8 +38,8 @@ const executeClient = function (dirname) {
   }
   try {
     const timeFiller = new TimeFiller(config, dirname);
-    const yesterday = moment().add(-1, 'day');
-    return timeFiller.syncTimes(yesterday);
+    const lastWorkDay = timeUtils.lastWorkDate();
+    return timeFiller.syncTimes(lastWorkDay);
   } catch(timeFillerError) {
     const message = timeFillerError.message || timeFillerError;
     console.log(`Error executing timefiller ${message}`);

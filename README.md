@@ -27,4 +27,5 @@ JIRA's or Harvest's config are optional, you may not include that config and the
 
 ## Caveats
 
-The script does not support a "Cat in the keyboard", so do expect some funky errors if passwords are wrong and things like that.
+* By default it will try to create work logs using yesterday as date. If it is saturday, sunday or monday it will try to query friday.
+* The script does not support a "Cat in the keyboard", so do expect some funky errors if passwords are wrong and things like that.
