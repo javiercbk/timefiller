@@ -1,0 +1,29 @@
+{
+  "name": "timefiller-script",
+  "version": "1.0.0",
+  "description": "Fills time in JIRA and in Harvest using waka time metrics",
+  "main": "index.js",
+  "devDependencies": {
+    "eslint": "^3.6.0"
+  },
+  "dependencies": {
+    "commander": "^2.11.0",
+    "harvest": "^1.0.0",
+    "jira-client": "^6.4.0",
+    "lodash": "^4.17.4",
+    "moment": "^2.18.1",
+    "prompt": "^1.0.0",
+    "wakatime": "0.0.2"
+  },
+  "scripts": {
+    "test": "echo \"No test for you\" && exit 1"
+  },
+  "keywords": [
+    "waka",
+    "time",
+    "jira",
+    "harvest"
+  ],
+  "author": "Javier Lecuona",
+  "license": "ISC"
+}

@@ -1,0 +1,15 @@
+{
+  "jira": {
+    "host": "company.atlassian.net",
+    "username": "email@email.com",
+    "password": "password"
+  },
+  "harvest": {
+    "subdomain": "company",
+    "email": "email@email.com",
+    "password": "password"
+  },
+  "waka": {
+    "apiKey": "wakatime-api-key"
+  }
+}
