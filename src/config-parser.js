@@ -6,11 +6,11 @@ class ConfigParser {
   }
 
   readConfigSync() {
-    let stats
+    let stats;
     try {
       stats = fs.statSync(this.file);
     } catch (err) {
-      if (err.code == 'ENOENT') {
+      if (err.code === 'ENOENT') {
         throw new Error('Config file path does not exist');
       }
     }

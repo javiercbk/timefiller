@@ -1,4 +1,5 @@
 const Promise = require('bluebird');
+const _ = require('lodash');
 const Waka = require('wakatime');
 const moment = require('moment');
 
@@ -14,9 +15,9 @@ class WakaFacade {
       date: date,
       seconds: 0,
     };
-    return this.retrieveDay(date).then((response) =>{
+    return this.retrieveDay(date).then((response) => {
       const jsonResponse = JSON.parse(response);
-      const projects = jsonResponse.data[0].projects;
+      const projects = _.get(jsonResponse, 'data.0.projects');
       let filter = () => true;
       if (allProjects && allProjects.length) {
         filter = p => allProjects.indexOf(p.name) !== -1;
@@ -51,13 +52,13 @@ class WakaFacade {
     });
   }
 
-  last7Days(){
+  last7Days() {
     return this._retrieveStats('last_7_days');
   }
 
-  _retrieveStats(statFilter){
+  _retrieveStats(statFilter) {
     return new Promise((resolve, reject) => {
-      this.wi.stats(statFilter, function (error, response, stats) {
+      this.wi.stats(statFilter, (error, response, stats) => {
         if (error) {
           reject(error);
         } else {

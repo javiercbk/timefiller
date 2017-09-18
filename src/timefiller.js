@@ -23,41 +23,42 @@ class TimeFiller {
   syncTimes(date) {
     let stats;
     return this.wakaStats(date)
-    .then((wakaStats) => {
-      stats = wakaStats;
-      // sprinkle some magic
-      const realSeconds = this._magicSecretAndEsotericHeuristicalTimeConversion(wakaStats.seconds);
-      stats.seconds = realSeconds;
-      const realHours = secondsToHours(realSeconds);
-      return cliPrompt.askWithSchema({
-        properties: {
-          answer: {
-            pattern: /^[0-9.]+$/,
-            message: 'Please type a number or empty',
-            required: false,
+      .then((wakaStats) => {
+        stats = wakaStats;
+        // sprinkle some magic
+        const realSeconds =
+          this._magicSecretAndEsotericHeuristicalTimeConversion(wakaStats.seconds);
+        stats.seconds = realSeconds;
+        const realHours = secondsToHours(realSeconds);
+        return cliPrompt.askWithSchema({
+          properties: {
+            answer: {
+              pattern: /^[0-9.]+$/,
+              message: 'Please type a number or empty',
+              required: false,
+            },
           },
-        },
-      }, {
-        question: `According to my magical calculation, you worked aproximatelly ${realHours} hours. Type enter to confirm or a new number to correct.`,
-      }).then((result) => {
-        const newHours = parseFloat(result.answer);
-        if (!isNaN(newHours)) {
-          const oldHours = secondsToHours(stats.seconds);
-          console.log(`Changing from ${oldHours} hours to ${newHours} hours.`)
-          stats.seconds = hoursToSeconds(newHours);
+        }, {
+          question: `According to my magical calculation, you worked aproximatelly ${realHours} hours. Type enter to confirm or a new number to correct.`,
+        }).then((result) => {
+          const newHours = parseFloat(result.answer);
+          if (!Number.isNaN(newHours)) {
+            const oldHours = secondsToHours(stats.seconds);
+            console.log(`Changing from ${oldHours} hours to ${newHours} hours.`);
+            stats.seconds = hoursToSeconds(newHours);
+          }
+        });
+      })
+      .then(() => {
+        if (this.jiraFacade) {
+          return this.syncWithJira(stats);
+        }
+      })
+      .then(() => {
+        if (this.harvestFacade) {
+          return this.syncWithHarvest(stats);
         }
       });
-    })
-    .then(() => {
-      if (this.jiraFacade) {
-        return this.syncWithJira(stats);
-      }
-    })
-    .then(() => {
-      if (this.harvestFacade) {
-        return this.syncWithHarvest(stats);
-      }
-    });
   }
 
   wakaStats(date) {
@@ -66,117 +67,118 @@ class TimeFiller {
 
   syncWithJira(worked) {
     return this.jiraFacade.retrievedWorkLogged(worked.date)
-    .then(results => results && results.length? results[0] : null)
-    .then((issueWorkLogged) => {
-      if (issueWorkLogged) {
-        return cliPrompt.askWithSchema({
-          properties: {
-            answer: {
-              pattern: /^[yn]$/,
-              message: 'Yes or no?',
-              required: true
+      .then((results) => {
+        if (results && results.length) {
+          return results[0];
+        }
+      })
+      .then((issueWorkLogged) => {
+        if (issueWorkLogged) {
+          return cliPrompt.askWithSchema({
+            properties: {
+              answer: {
+                pattern: /^[yn]$/,
+                message: 'Yes or no?',
+                required: true,
+              },
             },
-          },
-        }, {
-          question: `A work log was already submited to "${issueWorkLogged.key}" with that date, would you like to create a new one? [y/n]`,
-        }).then(result => result.answer === 'y');
-      }
-      return true;
-    })
-    .then((shouldProceed) => {
-      if (shouldProceed) {
-        return this._chooseIssueAndAssign(worked);
-      }
-    });
+          }, {
+            question: `A work log was already submited to "${issueWorkLogged.key}" with that date, would you like to create a new one? [y/n]`,
+          }).then(result => result.answer === 'y');
+        }
+        return true;
+      })
+      .then((shouldProceed) => {
+        if (shouldProceed) {
+          return this._chooseIssueAndAssign(worked);
+        }
+      });
   }
 
   syncWithHarvest(worked) {
-    let harvestResponse;
     const date = worked.date.toDate();
     return this.harvestFacade.retrieveWorkedHours(date)
-    .then((response) => {
-      harvestResponse = response;
-      // should choose projects
-      const dayEntries = _.get(response, 'body.day_entries');
-      if (dayEntries && dayEntries.length) {
-        console.log('Time has already been filled in harvest');
-        return false;
-      } else {
+      .then((response) => {
+        // should choose projects
+        const dayEntries = _.get(response, 'body.day_entries');
+        if (dayEntries && dayEntries.length) {
+          console.log('Time has already been filled in harvest');
+          return false;
+        }
         const projectId = _.get(response, 'body.projects[0].id');
         // if there are more than 1 billable task, it should let you choose.
         const task = _.get(response, 'body.projects[0].tasks', []).find(t => t.billable);
         const realHours = secondsToHours(worked.seconds);
         return this.harvestFacade.createWorkedHours(projectId, task.id, date, realHours);
-      }
-
-    }).then((response) => {
-      if (response) {
-        console.log('Successfully saved hours to harvest');
-      }
-    });
+      }).then((response) => {
+        if (response) {
+          console.log('Successfully saved hours to harvest');
+        }
+      });
   }
 
   _chooseIssueAndAssign(worked) {
     if (!worked.seconds) {
       console.log('No work log found in waka time');
-      return;
     } else {
       return this._chooseJiraIssue()
-      .then((ticketToAssign) => {
-        const truncatedDate = worked.date.startOf('day');
-        const existingWorklog = ticketToAssign.fields.worklog.worklogs.find((w) => {
-          const worklogDate = moment(w.started).startOf('day');
-          return truncatedDate.isSame(worklogDate);
-        })
-        if (existingWorklog) {
-          console.log(`Jira issue ${ticketToAssign.key} has already a worklog for ${truncatedDate.format('YYYY-MM-DD')}`);
-        } else {
-          // sprinkle some magic
-          return this.jiraFacade.addWorklog(ticketToAssign.id, worked.date, worked.seconds);
-        }
-      }).then(() => {
-        console.log('Successfully saved worklog to JIRA');
-      });
+        .then((ticketToAssign) => {
+          const truncatedDate = worked.date.startOf('day');
+          const existingWorklog = ticketToAssign.fields.worklog.worklogs.find((w) => {
+            const worklogDate = moment(w.started).startOf('day');
+            return truncatedDate.isSame(worklogDate);
+          });
+          if (existingWorklog) {
+            console.log(`Jira issue ${ticketToAssign.key} has already a worklog for ${truncatedDate.format('YYYY-MM-DD')}`);
+          } else {
+            // sprinkle some magic
+            return this.jiraFacade.addWorklog(ticketToAssign.id, worked.date, worked.seconds);
+          }
+        }).then(() => {
+          console.log('Successfully saved worklog to JIRA');
+        });
     }
   }
 
   _chooseJiraIssue() {
     let issueChosen;
     return this.jiraFacade.assignableIssues('LMS', ['DEV-IN-PROGRESS', 'DEV-DONE'])
-    .then((issues) => {
-      if (issues.length) {
-        let sampleTickets = '';
-        issues.forEach((i) => {
-          sampleTickets += `${i.key}: "${i.fields.summary}"` + '\n';
-        });
-        let question = 'Type the ticket name to assign hours'
-        if (sampleTickets) {
-          question += ', candidates are: \n' + sampleTickets;
-        } else {
-          question += ': ';
+      .then((issues) => {
+        if (issues.length) {
+          let sampleTickets = '';
+          issues.forEach((i) => {
+            // eslint-disable-next-line no-useless-concat
+            sampleTickets += `${i.key}: "${i.fields.summary}"` + '\n';
+          });
+          let question = 'Type the ticket name to assign hours';
+          if (sampleTickets) {
+            // eslint-disable-next-line no-useless-concat,prefer-template
+            question += ', candidates are: \n' + sampleTickets;
+          } else {
+            question += ': ';
+          }
+          return cliPrompt.ask({
+            question,
+          });
         }
-        return cliPrompt.ask({
-          question,
-        });
-      }
-    }).then((result) => {
-      issueChosen = result.answer;
-      return this.jiraFacade.retrieveIssueByKey(issueChosen);
-    }).catch((err) => {
-      const errorMessage = _.get(err, 'error.errorMessages[0]', '');
-      if (err.statusCode === 400 && errorMessage.match(/The issue key.*/)) {
-        return [];
-      }
-      // better error handling would be sweet.
-      throw err;
-    }).then((issuesFound) => {
-      if (issuesFound.length) {
-        return issuesFound[0];
-      } else {
-        console.log(`I'm sorry but it seems that issue "${issueChosen}" does not exist.`)
+      }).then((result) => {
+        issueChosen = result.answer;
+        return this.jiraFacade.retrieveIssueByKey(issueChosen);
+      }).catch((err) => {
+        const errorMessage = _.get(err, 'error.errorMessages[0]', '');
+        if (err.statusCode === 400 && errorMessage.match(/The issue key.*/)) {
+          return [];
+        }
+        // better error handling would be sweet.
+        throw err;
+      })
+      .then((issuesFound) => {
+        if (issuesFound.length) {
+          return issuesFound[0];
+        }
+        console.log(`I'm sorry but it seems that issue "${issueChosen}" does not exist.`);
         return this._chooseJiraIssue();
-      }
-    });
+      });
   }
 
   /**

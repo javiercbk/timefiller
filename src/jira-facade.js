@@ -11,7 +11,7 @@ class JiraFacade {
       username: configuration.jira.username,
       password: configuration.jira.password,
       apiVersion: '2',
-      strictSSL: true
+      strictSSL: true,
     });
   }
 
@@ -22,8 +22,8 @@ class JiraFacade {
         query: { adjustEstimate: 'auto' },
       }),
       body: {
-        "started": date.format(JIRA_DATE_FORMAT),
-        "timeSpentSeconds": seconds,
+        started: date.format(JIRA_DATE_FORMAT),
+        timeSpentSeconds: seconds,
       },
       method: 'POST',
       'Content-Type': 'application/json',
@@ -34,7 +34,7 @@ class JiraFacade {
 
   retrievedWorkLogged(date) {
     const now = date.startOf('day');
-    const query = `worklogAuthor=currentUser() AND worklogDate = "${now.format('YYYY/MM/DD')}"`
+    const query = `worklogAuthor=currentUser() AND worklogDate = "${now.format('YYYY/MM/DD')}"`;
     const options = {
       startAt: 0,
       maxResults: 1000,
@@ -73,17 +73,16 @@ class JiraFacade {
 
   _exhaustIssues(query, options, previousIssues = []) {
     return this.jira.searchJira(query, options).then((issuesResponse) => {
-      const issues = issuesResponse.issues;
+      const { issues } = issuesResponse;
       const allIssues = previousIssues.concat(issues);
       if (options.maxResults && issues.length === options.maxResults) {
         if (!options.startAt) {
           options.startAt = 0;
         }
-        options.startAt = options.startAt + issues.length;
+        options.startAt += issues.length;
         return this._exhaustIssues(query, options, allIssues);
-      } else {
-        return allIssues;
       }
+      return allIssues;
     });
   }
 }
