@@ -1,5 +1,6 @@
 const program = require('commander');
 const path = require('path');
+const moment = require('moment');
 
 const TimeFiller = require('./timefiller');
 const timeUtils = require('./time-utils');
@@ -8,15 +9,23 @@ const ConfigParser = require('./config-parser');
 const executeClient = function (dirname) {
   program
     .version('0.0.1')
-    .option('-f, --file', 'Configuration file path')
+    .option('-f, --file <file>', 'Configuration file path')
+    .option('-d, --date <date>', 'Date in format yyyy-mm-dd')
     .parse(process.argv);
 
 
   let configFilePath = path.join(dirname, 'timefiller.json');
+  let date = timeUtils.lastWorkDate();
   if (program.file) {
     configFilePath = program.file;
   } else {
     console.log('No file given, assuming \'timefiller.json\'');
+  }
+  if (program.date) {
+    date = moment(program.date);
+    if (!date.isValid()) {
+      console.log(`Invalid date given: "${program.date}". Expected format "yyyy-mm-dd"`);
+    }
   }
 
   const configParser = new ConfigParser(configFilePath);
@@ -36,8 +45,7 @@ const executeClient = function (dirname) {
   }
   try {
     const timeFiller = new TimeFiller(config, dirname);
-    const lastWorkDay = timeUtils.lastWorkDate();
-    return timeFiller.syncTimes(lastWorkDay);
+    return timeFiller.syncTimes(date);
   } catch (timeFillerError) {
     const message = timeFillerError.message || timeFillerError;
     console.log(`Error executing timefiller ${message}`);
