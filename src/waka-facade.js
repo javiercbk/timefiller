@@ -17,6 +17,11 @@ class WakaFacade {
     };
     return this.retrieveDay(date).then((response) => {
       const jsonResponse = JSON.parse(response);
+      if (jsonResponse.error) {
+        const error = new Error(jsonResponse.error);
+        error.timefillerErrorType = 'waka';
+        throw error;
+      }
       const projects = _.get(jsonResponse, 'data.0.projects');
       let filter = () => true;
       if (allProjects && allProjects.length) {

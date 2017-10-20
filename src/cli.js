@@ -27,7 +27,6 @@ const executeClient = function (dirname) {
       console.log(`Invalid date given: "${program.date}". Expected format "yyyy-mm-dd"`);
     }
   }
-
   const configParser = new ConfigParser(configFilePath);
   let config;
   try {

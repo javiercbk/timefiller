@@ -58,6 +58,26 @@ class TimeFiller {
         if (this.harvestFacade) {
           return this.syncWithHarvest(stats);
         }
+      })
+      .catch((err) => {
+        let errorType;
+        switch (err.timefillerErrorType) {
+          case 'waka':
+            errorType = 'Waka time error';
+            break;
+          case 'jira':
+            errorType = 'JIRA error';
+            break;
+          case 'harvest':
+            errorType = 'Harvest error';
+            break;
+          default:
+            errorType = 'Unknown error';
+            break;
+        }
+        const message = err.message || err;
+        console.log(`${errorType}: ${message}`);
+        throw err;
       });
   }
 
