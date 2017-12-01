@@ -23,6 +23,13 @@ class TimeFiller {
   syncTimes(date) {
     let stats;
     return this.wakaStats(date)
+      .catch(() => {
+        console.log('Waka time failed miserably :(');
+        return {
+          date,
+          seconds: 0,
+        };
+      })
       .then((wakaStats) => {
         stats = wakaStats;
         // sprinkle some magic
